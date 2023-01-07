@@ -13,6 +13,11 @@ const (
     EvictionTime = 10 * time.Minute
 )
 
+var (
+    instance *Cache
+    locker = &sync.Mutex{}
+)
+
 // Cache is a concurrent sharded cache.
 type Cache struct {
     shards []*shard
@@ -30,8 +35,23 @@ type entry struct {
     addedAt time.Time
 }
 
-// NewCache creates a new cache.
-func NewCache() *Cache {
+// GetCache implements the singleton pattern, the if after the lock is for verification inside goruntimes
+func GetCache() *Cache {
+    if instance != nil {
+        return instance
+    }
+
+    locker.Lock()
+    defer locker.Unlock()
+    if instance == nil {
+        instance = newCache()
+    }
+
+    return instance
+}
+
+// newCache creates a new cache.
+func newCache() *Cache {
     c := &Cache{
         shards: make([]*shard, NumShards),
         }

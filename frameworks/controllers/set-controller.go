@@ -1,9 +1,10 @@
 package controllers
 
 import (
-    "encoding/json"
     "github.com/gin-gonic/gin"
-    "io"
+    "github.com/tenlisboa/cache_service/domains/usecases"
+    "github.com/tenlisboa/cache_service/frameworks/helpers"
+    "github.com/tenlisboa/cache_service/services"
 )
 
 type SetRequest struct {
@@ -11,22 +12,14 @@ type SetRequest struct {
     Data any `json:"data"`
 }
 func SetController(c *gin.Context) {
-    jsonData, err := io.ReadAll(c.Request.Body)
-    if (err != nil) {
-        c.AbortWithStatusJSON(400, gin.H{
-            "error": true,
-            "message": "It was not possible to store the data",
-            })
-    }
-    var request SetRequest
-    if err := json.Unmarshal(jsonData, &request); err != nil {
-        c.AbortWithStatusJSON(400, gin.H{
-            "error": true,
-            "message": "Data is invalid",
-            })
-    }
+    request := helpers.ParseBody[SetRequest](c)
 
-//    cache.Set(request.Key, request.Data)
+    cacheService := services.GetCache()
+    usecase := usecases.NewSetDataUsecase(cacheService)
+    usecase.Execute(usecases.SetDataInput{
+        Key: request.Key,
+        Data: request.Data,
+    })
 
     c.JSON(200, gin.H{
         "error": false,
